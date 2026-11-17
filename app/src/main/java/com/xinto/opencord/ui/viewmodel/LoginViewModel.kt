@@ -34,6 +34,12 @@ class LoginViewModel(
     private var fingerprint: String? = null
     private var cookies: List<Cookie>? = null
 
+    var captchaSiteKey by mutableStateOf<String?>(null)
+        private set
+    var captchaRqData by mutableStateOf<String?>(null)
+        private set
+    private var captchaRqToken by mutableStateOf<String?>(null)
+
     var isLoading by mutableStateOf(false)
         private set
 
@@ -82,6 +88,7 @@ class LoginViewModel(
                     ),
                     existingCookies = cookies,
                     xFingerprint = fingerprint,
+                    xCaptchaRqtoken = captchaRqToken,
                 ).toDomain()
 
                 when (response) {
@@ -93,6 +100,9 @@ class LoginViewModel(
                         showMfa = true
                     }
                     is DomainLogin.Captcha -> {
+                        captchaSiteKey = response.captchaSiteKey
+                        captchaRqData = response.captchaRqData
+                        captchaRqToken = response.captchaRqToken
                         showCaptcha = true
                     }
                     is DomainLogin.Error -> {
@@ -129,6 +139,7 @@ class LoginViewModel(
                     ),
                     cookies,
                     fingerprint!!,
+                    captchaRqToken,
                 ).toDomain()
 
                 when (response) {
@@ -139,6 +150,9 @@ class LoginViewModel(
                         error("double mfa")
                     }
                     is DomainLogin.Captcha -> {
+                        captchaSiteKey = response.captchaSiteKey
+                        captchaRqData = response.captchaRqData
+                        captchaRqToken = response.captchaRqToken
                         showCaptcha = true
                     }
                     is DomainLogin.Error -> {
@@ -170,9 +184,13 @@ class LoginViewModel(
         username = ""
         password = ""
         showMfa = false
+        showCaptcha = false
         mfaTicket = null
         fingerprint = null
         cookies = null
+        captchaSiteKey = null
+        captchaRqData = null
+        captchaRqToken = null
 
         accountManager.currentAccountToken = token
         activityManager.startActivity(AppActivity::class)
@@ -192,6 +210,7 @@ class LoginViewModel(
         usernameError = false
         cookies = null
         fingerprint = null
+        captchaRqToken = null
     }
 
     fun updatePassword(newPassword: String) {
@@ -199,6 +218,7 @@ class LoginViewModel(
         passwordError = false
         cookies = null
         fingerprint = null
+        captchaRqToken = null
     }
 
     fun updateMfaCode(newMFACode: String) {

@@ -2,19 +2,25 @@ package com.xinto.opencord.ui.components.captcha
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.hcaptcha.sdk.HCaptcha
 import com.hcaptcha.sdk.HCaptchaError
+import com.xinto.opencord.di.HCaptchaFactory
 import org.koin.compose.koinInject
-import org.koin.core.parameter.parametersOf
 
 @Composable
 fun HCaptcha(
+    captchaSiteKey: String,
+    captchaRqData: String?,
     onSuccess: (token: String) -> Unit,
     onFailure: (HCaptchaError, code: Int) -> Unit,
 ) {
     val context = LocalContext.current
-    val captcha: HCaptcha = koinInject { parametersOf(context) }
+    val captchaFactory: HCaptchaFactory = koinInject()
+    val captcha = remember(captchaFactory, context, captchaSiteKey, captchaRqData) {
+        captchaFactory(context, captchaSiteKey, captchaRqData)
+    }
     DisposableEffect(captcha) {
         captcha.verifyWithHCaptcha()
             .addOnSuccessListener {

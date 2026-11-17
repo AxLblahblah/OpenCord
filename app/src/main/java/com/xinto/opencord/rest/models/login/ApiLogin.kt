@@ -17,6 +17,12 @@ data class ApiLogin(
     @SerialName("captcha_sitekey")
     val captchaSiteKey: String? = null,
 
+    @SerialName("captcha_rqdata")
+    val captchaRqData: String? = null,
+
+    @SerialName("captcha_rqtoken")
+    val captchaRqToken: String? = null,
+
     @SerialName("ticket")
     val ticket: String? = null,
 )

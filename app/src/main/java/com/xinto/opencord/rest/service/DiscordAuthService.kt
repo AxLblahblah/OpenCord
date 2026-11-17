@@ -15,6 +15,9 @@ import kotlinx.coroutines.withContext
 private val HttpHeaders.XFingerprint: String
     get() = "X-Fingerprint"
 
+private val HttpHeaders.XCaptchaRqtoken: String
+    get() = "X-Captcha-Rqtoken"
+
 interface DiscordAuthService {
     suspend fun getFingerprint(): Pair<String, List<Cookie>>
 
@@ -22,12 +25,14 @@ interface DiscordAuthService {
         body: LoginBody,
         existingCookies: List<Cookie>?,
         xFingerprint: String,
+        xCaptchaRqtoken: String? = null,
     ): ApiLogin
 
     suspend fun verifyTwoFactor(
         body: TwoFactorBody,
         existingCookies: List<Cookie>?,
         xFingerprint: String,
+        xCaptchaRqtoken: String? = null,
     ): ApiLogin
 }
 
@@ -54,12 +59,16 @@ class DiscordAuthServiceImpl(
         body: LoginBody,
         existingCookies: List<Cookie>?,
         xFingerprint: String,
+        xCaptchaRqtoken: String?,
     ): ApiLogin {
         return withContext(Dispatchers.IO) {
             client.post(getLoginUrl()) {
                 setBody(body)
                 setCookies(existingCookies)
                 header(HttpHeaders.XFingerprint, xFingerprint)
+                if (xCaptchaRqtoken != null) {
+                    header(HttpHeaders.XCaptchaRqtoken, xCaptchaRqtoken)
+                }
             }.body()
         }
     }
@@ -68,12 +77,16 @@ class DiscordAuthServiceImpl(
         body: TwoFactorBody,
         existingCookies: List<Cookie>?,
         xFingerprint: String,
+        xCaptchaRqtoken: String?,
     ): ApiLogin {
         return withContext(Dispatchers.IO) {
             client.post(getTwoFactorUrl()) {
                 setBody(body)
                 setCookies(existingCookies)
                 header(HttpHeaders.XFingerprint, xFingerprint)
+                if (xCaptchaRqtoken != null) {
+                    header(HttpHeaders.XCaptchaRqtoken, xCaptchaRqtoken)
+                }
             }.body()
         }
     }
