@@ -50,7 +50,7 @@ fun MembersList(
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                     ) {
-                        items(viewModel.members, key = { it.id }) { member ->
+                        items(viewModel.members, key = { it.user?.id ?: 0L }) { member ->
                             MemberItem(
                                 member = member,
                                 modifier = Modifier
