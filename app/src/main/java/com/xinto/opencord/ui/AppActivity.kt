@@ -17,6 +17,7 @@ import com.xinto.opencord.gateway.DiscordGateway
 import com.xinto.opencord.ui.navigation.AppDestination
 import com.xinto.opencord.ui.navigation.back
 import com.xinto.opencord.ui.screens.Settings
+import com.xinto.opencord.ui.screens.friends.FriendsScreen
 import com.xinto.opencord.ui.screens.home.HomeScreen
 import com.xinto.opencord.ui.screens.mentions.MentionsScreen
 import com.xinto.opencord.ui.screens.pins.PinsScreen
@@ -90,7 +91,7 @@ class AppActivity : ComponentActivity() {
                             onPinsClick = { nav.navigate(AppDestination.Pins(data = it)) },
                             onSettingsClick = { nav.navigate(AppDestination.Settings) },
                             onMentionsClick = { nav.navigate(AppDestination.Mentions) },
-                            onFriendsClick = { /* TODO */ },
+                            onFriendsClick = { nav.navigate(AppDestination.Friends) },
                             onSearchClick = { /* TODO */ },
                         )
 
@@ -102,6 +103,13 @@ class AppActivity : ComponentActivity() {
                         )
 
                         AppDestination.Mentions -> MentionsScreen(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .imePadding(),
+                            onBackClick = { nav.back() },
+                        )
+
+                        AppDestination.Friends -> FriendsScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .imePadding(),

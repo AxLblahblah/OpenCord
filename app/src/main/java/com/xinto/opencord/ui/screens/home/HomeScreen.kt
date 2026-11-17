@@ -143,6 +143,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 MembersList(
+                    guildId = channelsViewModel.selectedGuildId,
                     modifier = Modifier
                         .fillMaxSize()
                         .weight(1f),

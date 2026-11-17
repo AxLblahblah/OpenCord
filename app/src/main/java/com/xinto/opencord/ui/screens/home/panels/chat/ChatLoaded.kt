@@ -53,6 +53,21 @@ fun ChatLoaded(
         }
     }
 
+    val shouldLoadOlder by remember {
+        derivedStateOf {
+            val info = listState.layoutInfo
+
+            info.totalItemsCount > 0 &&
+                    listState.firstVisibleItemIndex >= info.totalItemsCount - 5
+        }
+    }
+
+    LaunchedEffect(shouldLoadOlder) {
+        if (shouldLoadOlder) {
+            viewModel.loadOlderMessages()
+        }
+    }
+
     if (messageMenuTarget != null) {
         MessageMenu(
             messageId = messageMenuTarget!!,

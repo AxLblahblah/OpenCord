@@ -21,6 +21,9 @@ sealed interface AppDestination : Parcelable {
     object Mentions : AppDestination
 
     @Parcelize
+    object Friends : AppDestination
+
+    @Parcelize
     data class Pins(val data: PinsScreenData) : AppDestination
 }
 

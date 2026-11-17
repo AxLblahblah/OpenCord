@@ -90,6 +90,9 @@ class ChannelsViewModel(
     var selectedChannelId by mutableStateOf(0L)
         private set
 
+    var selectedGuildId by mutableStateOf(0L)
+        private set
+
     var guildName by mutableStateOf("")
         private set
     var guildBannerUrl by mutableStateOf<String?>(null)
@@ -105,6 +108,8 @@ class ChannelsViewModel(
 
     fun load() {
         if (persistentGuildId < 0L) return
+
+        selectedGuildId = persistentGuildId
 
         viewModelScope.coroutineContext.cancelChildren()
         viewModelScope.launch {
