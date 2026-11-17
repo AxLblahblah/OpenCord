@@ -8,6 +8,7 @@ import com.xinto.opencord.gateway.DiscordGateway
 import com.xinto.opencord.gateway.event.ChannelCreateEvent
 import com.xinto.opencord.gateway.event.ChannelDeleteEvent
 import com.xinto.opencord.gateway.event.ChannelUpdateEvent
+import com.xinto.opencord.gateway.event.GuildCreateEvent
 import com.xinto.opencord.gateway.event.ReadyEvent
 import com.xinto.opencord.gateway.onEvent
 import kotlinx.coroutines.Dispatchers
@@ -88,6 +89,22 @@ class ChannelStoreImpl(
             replaceChannels.values.forEach { replaceEvents.emit(it) }
 
             cache.channels().replaceAllChannels(channels)
+        }
+
+        gateway.onEvent<GuildCreateEvent> { event ->
+            val guildId = event.data.id.value
+            val channels = event.data.channels
+                ?.map { it.toEntity(guildId) }
+                ?: return@onEvent
+
+            channels.map { it.toDomain() }
+                .groupByTo(mutableMapOf(), keySelector = { it.guildId })
+                .values.forEach { replaceEvents.emit(it) }
+
+            cache.runInTransaction {
+                cache.channels().deleteChannelsByGuild(guildId)
+                cache.channels().insertChannels(channels)
+            }
         }
 
         gateway.onEvent<ChannelCreateEvent> {
