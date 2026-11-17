@@ -18,7 +18,7 @@ data class ApiGuild(
     val banner: String? = null,
 
     @SerialName("premium_tier")
-    val premiumTier: Int,
+    val premiumTier: Int = 0,
 
     @SerialName("premium_subscription_count")
     val premiumSubscriptionCount: Int? = null,

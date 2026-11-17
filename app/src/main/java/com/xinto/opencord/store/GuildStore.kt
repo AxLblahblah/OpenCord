@@ -10,6 +10,9 @@ import com.xinto.opencord.gateway.event.GuildDeleteEvent
 import com.xinto.opencord.gateway.event.GuildUpdateEvent
 import com.xinto.opencord.gateway.event.ReadyEvent
 import com.xinto.opencord.gateway.onEvent
+import com.xinto.opencord.rest.service.DiscordApiService
+import com.xinto.opencord.util.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -28,7 +31,9 @@ interface GuildStore {
 
 class GuildStoreImpl(
     gateway: DiscordGateway,
+    private val api: DiscordApiService,
     private val cache: CacheDatabase,
+    private val logger: Logger,
 ) : GuildStore {
     private val events = MutableSharedFlow<GuildEvent>()
 
@@ -57,14 +62,23 @@ class GuildStoreImpl(
     }
 
     init {
-        gateway.onEvent<ReadyEvent> { event ->
-            val guilds = event.data.guilds.map { it.toEntity() }
+        gateway.onEvent<ReadyEvent> { _ ->
+            val guilds = try {
+                api.getGuilds()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.error("GuildStore", "Failed to sync guilds", e)
+                emptyList()
+            }
 
-            for (guild in guilds) {
+            val entities = guilds.map { it.toEntity() }
+
+            for (guild in entities) {
                 events.emit(GuildEvent.Add(guild.toDomain()))
             }
 
-            cache.guilds().replaceAllGuilds(guilds)
+            cache.guilds().replaceAllGuilds(entities)
         }
 
         gateway.onEvent<GuildCreateEvent> {

@@ -11,6 +11,9 @@ import com.xinto.opencord.gateway.event.ChannelUpdateEvent
 import com.xinto.opencord.gateway.event.GuildCreateEvent
 import com.xinto.opencord.gateway.event.ReadyEvent
 import com.xinto.opencord.gateway.onEvent
+import com.xinto.opencord.rest.service.DiscordApiService
+import com.xinto.opencord.util.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,7 +33,9 @@ interface ChannelStore {
 
 class ChannelStoreImpl(
     gateway: DiscordGateway,
+    private val api: DiscordApiService,
     private val cache: CacheDatabase,
+    private val logger: Logger,
 ) : ChannelStore {
     private val events = MutableSharedFlow<ChannelEvent>()
     private val replaceEvents = MutableSharedFlow<List<DomainChannel>>()
@@ -75,9 +80,26 @@ class ChannelStoreImpl(
     }
 
     init {
-        gateway.onEvent<ReadyEvent> { event ->
-            val channels = event.data.guilds.flatMap { guild ->
-                guild.channels?.map { it.toEntity(guild.id.value) } ?: emptyList()
+        gateway.onEvent<ReadyEvent> { _ ->
+            val guilds = try {
+                api.getGuilds()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.error("ChannelStore", "Failed to sync guilds", e)
+                emptyList()
+            }
+
+            val channels = guilds.flatMap { guild ->
+                val guildId = guild.id.value
+                try {
+                    api.getGuildChannels(guildId).map { it.toEntity(guildId) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    logger.error("ChannelStore", "Failed to sync channels for guild $guildId", e)
+                    emptyList()
+                }
             }
 
             val replaceChannels = channels.groupByTo(

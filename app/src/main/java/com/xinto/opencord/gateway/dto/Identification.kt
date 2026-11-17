@@ -38,7 +38,7 @@ data class IdentificationClientState(
     @SerialName("readStateVersion")
     val readStateVersion: Int,
 
-    @SerialName("useruserGuildSettingsVersion")
+    @SerialName("userGuildSettingsVersion")
     val userGuildSettingsVersion: Int,
 )
 
