@@ -104,7 +104,7 @@ class ChannelsViewModel(
     private val allChannelItems = mutableMapOf<Long, ChannelItemData>()
 
     fun load() {
-        if (persistentGuildId <= 0L) return
+        if (persistentGuildId < 0L) return
 
         viewModelScope.coroutineContext.cancelChildren()
         viewModelScope.launch {
@@ -112,12 +112,11 @@ class ChannelsViewModel(
             withContext(Dispatchers.IO) {
                 try {
                     val guild = guildStore.fetchGuild(persistentGuildId)
-                        ?: return@withContext
 
                     withContext(Dispatchers.Main) {
-                        guildName = guild.name
-                        guildBannerUrl = guild.bannerUrl
-                        guildBoostLevel = guild.premiumTier
+                        guildName = guild?.name ?: "Direct Messages"
+                        guildBannerUrl = guild?.bannerUrl
+                        guildBoostLevel = guild?.premiumTier ?: 0
                     }
 
                     replaceChannels(channelStore.fetchChannels(persistentGuildId))

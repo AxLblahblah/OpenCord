@@ -84,7 +84,7 @@ class ChatViewModel(
 
     fun load() {
         val channelId = persistentDataManager.persistentChannelId
-        if (channelId <= 0L || persistentDataManager.persistentGuildId <= 0L) return
+        if (channelId <= 0L) return
 
         viewModelScope.coroutineContext.cancelChildren()
 
@@ -220,7 +220,7 @@ class ChatViewModel(
     }
 
     init {
-        if (persistentGuildId != 0L && persistentChannelId != 0L) {
+        if (persistentChannelId != 0L) {
             load()
         }
 

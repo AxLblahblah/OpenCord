@@ -75,6 +75,7 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxHeight()
                             .width(72.dp),
+                        onHomeSelect = channelsViewModel::load,
                         onGuildSelect = channelsViewModel::load,
                         viewModel = guildsViewModel,
                     )

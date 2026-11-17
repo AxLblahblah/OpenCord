@@ -22,6 +22,8 @@ import com.xinto.opencord.ui.viewmodel.GuildsViewModel.GuildItem
 @Composable
 fun GuildsListLoaded(
     items: SnapshotStateList<GuildItem>,
+    homeSelected: Boolean,
+    onHomeSelect: () -> Unit,
     onGuildSelect: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -36,9 +38,9 @@ fun GuildsListLoaded(
                 is GuildItem.Header -> {
                     RegularGuildItem(
                         modifier = Modifier.fillParentMaxWidth(),
-                        selected = false,
-                        showIndicator = false,
-                        onClick = {},
+                        selected = homeSelected,
+                        showIndicator = true,
+                        onClick = onHomeSelect,
                     ) {
                         GuildsListHeaderItem()
                     }

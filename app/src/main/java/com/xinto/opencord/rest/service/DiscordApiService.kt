@@ -51,6 +51,8 @@ interface DiscordApiService {
     suspend fun getGuilds(): List<ApiGuild>
 
     suspend fun getGuildChannels(guildId: Long): List<ApiChannel>
+
+    suspend fun getPrivateChannels(): List<ApiChannel>
 }
 
 class DiscordApiServiceImpl(
@@ -161,6 +163,12 @@ class DiscordApiServiceImpl(
         }
     }
 
+    override suspend fun getPrivateChannels(): List<ApiChannel> {
+        return withContext(Dispatchers.IO) {
+            client.get(getPrivateChannelsUrl()).body()
+        }
+    }
+
     private companion object {
         const val BASE = BuildConfig.URL_API
 
@@ -224,6 +232,10 @@ class DiscordApiServiceImpl(
 
         fun getGuildChannelsUrl(guildId: Long): String {
             return "$BASE/guilds/$guildId/channels"
+        }
+
+        fun getPrivateChannelsUrl(): String {
+            return "$BASE/users/@me/channels"
         }
 
         fun getUserMentionsUrl(

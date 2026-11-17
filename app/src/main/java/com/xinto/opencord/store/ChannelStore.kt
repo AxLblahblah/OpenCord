@@ -102,6 +102,22 @@ class ChannelStoreImpl(
                 }
             }
 
+            val dmChannels = try {
+                api.getPrivateChannels()
+                    .map { it.toEntity(DM_GUILD_ID) }
+                    .sortedByDescending { it.lastMessageId ?: 0L }
+                    .mapIndexed { index, channel -> channel.copy(position = index) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.error("ChannelStore", "Failed to sync private channels", e)
+                emptyList()
+            }
+
+            if (dmChannels.isNotEmpty()) {
+                replaceEvents.emit(dmChannels.map { it.toDomain() })
+            }
+
             val replaceChannels = channels.groupByTo(
                 mutableMapOf(),
                 keySelector = { it.guildId },
@@ -110,7 +126,7 @@ class ChannelStoreImpl(
 
             replaceChannels.values.forEach { replaceEvents.emit(it) }
 
-            cache.channels().replaceAllChannels(channels)
+            cache.channels().replaceAllChannels(channels + dmChannels)
         }
 
         gateway.onEvent<GuildCreateEvent> { event ->
@@ -155,5 +171,9 @@ class ChannelStoreImpl(
                 cache.messages().deleteByChannel(channelId)
             }
         }
+    }
+
+    private companion object {
+        const val DM_GUILD_ID = 0L
     }
 }

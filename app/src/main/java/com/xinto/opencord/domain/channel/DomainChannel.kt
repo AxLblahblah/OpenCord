@@ -38,6 +38,13 @@ abstract class DomainChannel : Comparable<DomainChannel>, Mentionable {
 
 fun ApiChannel.toDomain(): DomainChannel {
     return when (type) {
+        1, 3 -> DomainDmChannel(
+            id = id.value,
+            guildId = guildId?.value,
+            name = name ?: "Direct Messages",
+            position = position,
+            parentId = null,
+        )
         2 -> DomainVoiceChannel(
             id = id.value,
             guildId = guildId?.value,
@@ -72,6 +79,13 @@ fun ApiChannel.toDomain(): DomainChannel {
 
 fun EntityChannel.toDomain(): DomainChannel {
     return when (type) {
+        1, 3 -> DomainDmChannel(
+            id = id,
+            guildId = guildId,
+            name = name,
+            position = position,
+            parentId = parentId,
+        )
         2 -> DomainVoiceChannel(
             id = id,
             guildId = guildId,
