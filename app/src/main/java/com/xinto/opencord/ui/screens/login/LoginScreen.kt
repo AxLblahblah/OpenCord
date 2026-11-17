@@ -106,6 +106,13 @@ fun LoginScreen(
                 )
             }
             Spacer(Modifier.weight(1f))
+            if (viewModel.errorMessage != null) {
+                Text(
+                    text = viewModel.errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { viewModel.login(null) },
@@ -116,8 +123,10 @@ fun LoginScreen(
         }
     }
 
-    if (viewModel.showCaptcha) {
+    if (viewModel.showCaptcha && viewModel.captchaSiteKey != null) {
         HCaptcha(
+            captchaSiteKey = viewModel.captchaSiteKey!!,
+            captchaRqData = viewModel.captchaRqData,
             onSuccess = {
                 viewModel.login(it)
             },

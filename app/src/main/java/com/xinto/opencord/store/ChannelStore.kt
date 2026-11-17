@@ -8,8 +8,12 @@ import com.xinto.opencord.gateway.DiscordGateway
 import com.xinto.opencord.gateway.event.ChannelCreateEvent
 import com.xinto.opencord.gateway.event.ChannelDeleteEvent
 import com.xinto.opencord.gateway.event.ChannelUpdateEvent
+import com.xinto.opencord.gateway.event.GuildCreateEvent
 import com.xinto.opencord.gateway.event.ReadyEvent
 import com.xinto.opencord.gateway.onEvent
+import com.xinto.opencord.rest.service.DiscordApiService
+import com.xinto.opencord.util.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -29,7 +33,9 @@ interface ChannelStore {
 
 class ChannelStoreImpl(
     gateway: DiscordGateway,
+    private val api: DiscordApiService,
     private val cache: CacheDatabase,
+    private val logger: Logger,
 ) : ChannelStore {
     private val events = MutableSharedFlow<ChannelEvent>()
     private val replaceEvents = MutableSharedFlow<List<DomainChannel>>()
@@ -74,9 +80,42 @@ class ChannelStoreImpl(
     }
 
     init {
-        gateway.onEvent<ReadyEvent> { event ->
-            val channels = event.data.guilds.flatMap { guild ->
-                guild.channels?.map { it.toEntity(guild.id.value) } ?: emptyList()
+        gateway.onEvent<ReadyEvent> { _ ->
+            val guilds = try {
+                api.getGuilds()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.error("ChannelStore", "Failed to sync guilds", e)
+                emptyList()
+            }
+
+            val channels = guilds.flatMap { guild ->
+                val guildId = guild.id.value
+                try {
+                    api.getGuildChannels(guildId).map { it.toEntity(guildId) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    logger.error("ChannelStore", "Failed to sync channels for guild $guildId", e)
+                    emptyList()
+                }
+            }
+
+            val dmChannels = try {
+                api.getPrivateChannels()
+                    .map { it.toEntity(DM_GUILD_ID) }
+                    .sortedByDescending { it.lastMessageId ?: 0L }
+                    .mapIndexed { index, channel -> channel.copy(position = index) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.error("ChannelStore", "Failed to sync private channels", e)
+                emptyList()
+            }
+
+            if (dmChannels.isNotEmpty()) {
+                replaceEvents.emit(dmChannels.map { it.toDomain() })
             }
 
             val replaceChannels = channels.groupByTo(
@@ -87,7 +126,23 @@ class ChannelStoreImpl(
 
             replaceChannels.values.forEach { replaceEvents.emit(it) }
 
-            cache.channels().replaceAllChannels(channels)
+            cache.channels().replaceAllChannels(channels + dmChannels)
+        }
+
+        gateway.onEvent<GuildCreateEvent> { event ->
+            val guildId = event.data.id.value
+            val channels = event.data.channels
+                ?.map { it.toEntity(guildId) }
+                ?: return@onEvent
+
+            channels.map { it.toDomain() }
+                .groupByTo(mutableMapOf(), keySelector = { it.guildId })
+                .values.forEach { replaceEvents.emit(it) }
+
+            cache.runInTransaction {
+                cache.channels().deleteChannelsByGuild(guildId)
+                cache.channels().insertChannels(channels)
+            }
         }
 
         gateway.onEvent<ChannelCreateEvent> {
@@ -116,5 +171,9 @@ class ChannelStoreImpl(
                 cache.messages().deleteByChannel(channelId)
             }
         }
+    }
+
+    private companion object {
+        const val DM_GUILD_ID = 0L
     }
 }

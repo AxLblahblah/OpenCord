@@ -11,8 +11,11 @@ import com.xinto.opencord.rest.service.DiscordApiService
 import com.xinto.opencord.store.*
 import com.xinto.opencord.ui.viewmodel.base.BasePersistenceViewModel
 import com.xinto.opencord.util.collectIn
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -73,8 +76,14 @@ class ChatViewModel(
     var currentUserId by mutableStateOf<Long?>(null)
         private set
 
+    var isLoadingOlderMessages by mutableStateOf(false)
+        private set
+
     // Reverse sorted (decreasing) message list
     val sortedMessages = mutableStateListOf<MessageItem>()
+
+    private var loadedChannelId = 0L
+    private var hasMoreMessages = true
 
     private fun getMessageItemIndex(messageId: Long): Int? {
         return sortedMessages
@@ -84,7 +93,10 @@ class ChatViewModel(
 
     fun load() {
         val channelId = persistentDataManager.persistentChannelId
-        if (channelId <= 0L || persistentDataManager.persistentGuildId <= 0L) return
+        if (channelId <= 0L) return
+
+        loadedChannelId = channelId
+        hasMoreMessages = true
 
         viewModelScope.coroutineContext.cancelChildren()
 
@@ -129,6 +141,8 @@ class ChatViewModel(
 
                     state = State.Loaded
                 }
+
+                startMessagePolling(channelId)
             } catch (t: Throwable) {
                 t.printStackTrace()
 
@@ -141,6 +155,8 @@ class ChatViewModel(
         messageStore.observeChannel(channelId).collectIn(viewModelScope) { event ->
             event.fold(
                 onAdd = { msg ->
+                    if (getMessageItemIndex(msg.id) != null) return@fold
+
                     val topMessage = sortedMessages.getOrNull(0)
                     val canMerge = canMessagesMerge(msg, topMessage?.message)
 
@@ -220,12 +236,80 @@ class ChatViewModel(
     }
 
     init {
-        if (persistentGuildId != 0L && persistentChannelId != 0L) {
+        if (persistentChannelId != 0L) {
             load()
         }
 
         currentUserStore.observeCurrentUser().collectIn(viewModelScope) { user ->
             currentUserId = user.id
+        }
+    }
+
+    private fun startMessagePolling(channelId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            while (isActive) {
+                delay(MESSAGE_POLL_INTERVAL)
+
+                try {
+                    val newestId = sortedMessages
+                        .maxOfOrNull { it.message.id }
+                        ?: continue
+
+                    val newMessages = messageStore.fetchMessages(channelId, after = newestId)
+                        .filter { getMessageItemIndex(it.id) == null }
+                        .sortedByDescending { it.id }
+
+                    if (newMessages.isNotEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            for (message in newMessages) {
+                                if (getMessageItemIndex(message.id) != null) continue
+
+                                val topMessage = sortedMessages.getOrNull(0)
+                                val canMerge = canMessagesMerge(message, topMessage?.message)
+
+                                sortedMessages.getOrNull(0)?.bottomMerged = canMerge
+                                sortedMessages.add(0, MessageItem(message, topMerged = canMerge))
+                            }
+                        }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    fun loadOlderMessages() {
+        if (isLoadingOlderMessages || !hasMoreMessages || state != State.Loaded) return
+
+        val channelId = loadedChannelId
+        if (channelId <= 0L) return
+
+        val oldestId = sortedMessages.lastOrNull()?.message?.id ?: return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            isLoadingOlderMessages = true
+            try {
+                val olderMessages = messageStore.fetchMessages(channelId, before = oldestId)
+                    .filter { getMessageItemIndex(it.id) == null }
+                    .sortedByDescending { it.id }
+
+                hasMoreMessages = olderMessages.isNotEmpty()
+
+                if (olderMessages.isNotEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        sortedMessages.addAll(olderMessages.map { MessageItem(it) })
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isLoadingOlderMessages = false
+            }
         }
     }
 
@@ -240,5 +324,9 @@ class ChatViewModel(
                 && prevMessage.attachments.isEmpty()
                 && message.embeds.isEmpty()
                 && prevMessage.embeds.isEmpty()
+    }
+
+    private companion object {
+        const val MESSAGE_POLL_INTERVAL = 5_000L
     }
 }

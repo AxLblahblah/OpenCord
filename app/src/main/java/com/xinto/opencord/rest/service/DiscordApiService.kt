@@ -6,6 +6,10 @@ import com.xinto.opencord.domain.emoji.DomainGuildEmoji
 import com.xinto.opencord.domain.emoji.DomainUnicodeEmoji
 import com.xinto.opencord.domain.emoji.DomainUnknownEmoji
 import com.xinto.opencord.rest.body.MessageBody
+import com.xinto.opencord.rest.models.ApiChannel
+import com.xinto.opencord.rest.models.ApiGuild
+import com.xinto.opencord.rest.models.ApiGuildMember
+import com.xinto.opencord.rest.models.ApiRelationship
 import com.xinto.opencord.rest.models.message.ApiMessage
 import com.xinto.opencord.rest.models.user.settings.ApiUserSettings
 import com.xinto.opencord.rest.models.user.settings.ApiUserSettingsPartial
@@ -45,6 +49,16 @@ interface DiscordApiService {
         guildId: Long? = null,
         beforeId: Long? = null,
     ): List<ApiMessage>
+
+    suspend fun getGuilds(): List<ApiGuild>
+
+    suspend fun getGuildChannels(guildId: Long): List<ApiChannel>
+
+    suspend fun getPrivateChannels(): List<ApiChannel>
+
+    suspend fun getGuildMembers(guildId: Long, limit: Int = 200): List<ApiGuildMember>
+
+    suspend fun getRelationships(): List<ApiRelationship>
 }
 
 class DiscordApiServiceImpl(
@@ -143,6 +157,36 @@ class DiscordApiServiceImpl(
         }
     }
 
+    override suspend fun getGuilds(): List<ApiGuild> {
+        return withContext(Dispatchers.IO) {
+            client.get(getUserGuildsUrl()).body()
+        }
+    }
+
+    override suspend fun getGuildChannels(guildId: Long): List<ApiChannel> {
+        return withContext(Dispatchers.IO) {
+            client.get(getGuildChannelsUrl(guildId)).body()
+        }
+    }
+
+    override suspend fun getPrivateChannels(): List<ApiChannel> {
+        return withContext(Dispatchers.IO) {
+            client.get(getPrivateChannelsUrl()).body()
+        }
+    }
+
+    override suspend fun getGuildMembers(guildId: Long, limit: Int): List<ApiGuildMember> {
+        return withContext(Dispatchers.IO) {
+            client.get(getGuildMembersUrl(guildId, limit)).body()
+        }
+    }
+
+    override suspend fun getRelationships(): List<ApiRelationship> {
+        return withContext(Dispatchers.IO) {
+            client.get(getRelationshipsUrl()).body()
+        }
+    }
+
     private companion object {
         const val BASE = BuildConfig.URL_API
 
@@ -198,6 +242,26 @@ class DiscordApiServiceImpl(
                 is DomainUnknownEmoji -> error("cannot remove an unknown emoji")
             }
             return "${getChannelUrl(channelId)}/messages/$messageId/reactions/$emojiId/$user"
+        }
+
+        fun getUserGuildsUrl(): String {
+            return "$BASE/users/@me/guilds?with_counts=false"
+        }
+
+        fun getGuildChannelsUrl(guildId: Long): String {
+            return "$BASE/guilds/$guildId/channels"
+        }
+
+        fun getPrivateChannelsUrl(): String {
+            return "$BASE/users/@me/channels"
+        }
+
+        fun getGuildMembersUrl(guildId: Long, limit: Int): String {
+            return "$BASE/guilds/$guildId/members?limit=$limit"
+        }
+
+        fun getRelationshipsUrl(): String {
+            return "$BASE/users/@me/relationships"
         }
 
         fun getUserMentionsUrl(

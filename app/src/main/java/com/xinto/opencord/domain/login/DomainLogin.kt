@@ -14,7 +14,11 @@ sealed interface DomainLogin {
     ) : DomainLogin
 
     @Immutable
-    data class Captcha(val captchaSiteKey: String) : DomainLogin
+    data class Captcha(
+        val captchaSiteKey: String,
+        val captchaRqData: String?,
+        val captchaRqToken: String?,
+    ) : DomainLogin
 
     @Immutable
     data class TwoFactorAuth(val ticket: String) : DomainLogin
@@ -33,6 +37,8 @@ fun ApiLogin.toDomain(): DomainLogin {
         captchaSiteKey != null -> {
             DomainLogin.Captcha(
                 captchaSiteKey = captchaSiteKey,
+                captchaRqData = captchaRqData,
+                captchaRqToken = captchaRqToken,
             )
         }
         token != null -> {

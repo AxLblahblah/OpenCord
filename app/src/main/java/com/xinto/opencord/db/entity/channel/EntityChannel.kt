@@ -47,7 +47,10 @@ fun ApiChannel.toEntity(guildId: Long): EntityChannel {
     return EntityChannel(
         id = id.value,
         guildId = this.guildId?.value ?: guildId,
-        name = name,
+        name = name ?: recipients
+            ?.joinToString(", ") { it.globalName ?: it.username }
+            ?.ifEmpty { null }
+            ?: "Direct Messages",
         type = type,
         position = position,
         parentId = parentId?.value,

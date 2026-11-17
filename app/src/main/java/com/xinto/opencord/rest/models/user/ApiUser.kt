@@ -14,6 +14,9 @@ data class ApiUser(
     @SerialName("username")
     val username: String,
 
+    @SerialName("global_name")
+    val globalName: String? = null,
+
     @SerialName("discriminator")
     val discriminator: String,
 

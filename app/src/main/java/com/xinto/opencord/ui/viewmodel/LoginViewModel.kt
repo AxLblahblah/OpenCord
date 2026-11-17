@@ -14,6 +14,7 @@ import com.xinto.opencord.manager.AccountManager
 import com.xinto.opencord.manager.ActivityManager
 import com.xinto.opencord.rest.body.LoginBody
 import com.xinto.opencord.rest.body.TwoFactorBody
+import com.xinto.opencord.rest.models.login.LoginException
 import com.xinto.opencord.rest.service.DiscordAuthService
 import com.xinto.opencord.ui.AppActivity
 import com.xinto.opencord.util.throttle
@@ -33,6 +34,12 @@ class LoginViewModel(
     private var mfaTicket: String? = null
     private var fingerprint: String? = null
     private var cookies: List<Cookie>? = null
+
+    var captchaSiteKey by mutableStateOf<String?>(null)
+        private set
+    var captchaRqData by mutableStateOf<String?>(null)
+        private set
+    private var captchaRqToken by mutableStateOf<String?>(null)
 
     var isLoading by mutableStateOf(false)
         private set
@@ -56,8 +63,12 @@ class LoginViewModel(
     var mfaError by mutableStateOf(false)
         private set
 
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+
     val login = throttle(1000L, viewModelScope) { captchaToken: String? ->
         showCaptcha = false
+        errorMessage = null
 
         if (username.isEmpty()) {
             usernameError = true
@@ -82,6 +93,7 @@ class LoginViewModel(
                     ),
                     existingCookies = cookies,
                     xFingerprint = fingerprint,
+                    xCaptchaRqtoken = captchaRqToken,
                 ).toDomain()
 
                 when (response) {
@@ -93,6 +105,9 @@ class LoginViewModel(
                         showMfa = true
                     }
                     is DomainLogin.Captcha -> {
+                        captchaSiteKey = response.captchaSiteKey
+                        captchaRqData = response.captchaRqData
+                        captchaRqToken = response.captchaRqToken
                         showCaptcha = true
                     }
                     is DomainLogin.Error -> {
@@ -100,13 +115,21 @@ class LoginViewModel(
                         passwordError = true
                     }
                 }
+            } catch (e: LoginException) {
+                if (e.error.isEmailVerificationRequired) {
+                    errorMessage = "New login location detected. Check your email and click the verification link, then try logging in again."
+                } else {
+                    errorMessage = e.error.message
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
+                errorMessage = e.message
             }
         }
     }
 
     val verify2fa = throttle(1000L, viewModelScope) {
+        errorMessage = null
         if (mfaCode.isEmpty()) {
             mfaError = true
             return@throttle
@@ -129,6 +152,7 @@ class LoginViewModel(
                     ),
                     cookies,
                     fingerprint!!,
+                    captchaRqToken,
                 ).toDomain()
 
                 when (response) {
@@ -139,14 +163,20 @@ class LoginViewModel(
                         error("double mfa")
                     }
                     is DomainLogin.Captcha -> {
+                        captchaSiteKey = response.captchaSiteKey
+                        captchaRqData = response.captchaRqData
+                        captchaRqToken = response.captchaRqToken
                         showCaptcha = true
                     }
                     is DomainLogin.Error -> {
                         mfaError = true
                     }
                 }
+            } catch (e: LoginException) {
+                errorMessage = e.error.message
             } catch (e: Exception) {
                 e.printStackTrace()
+                errorMessage = e.message
             }
         }
     }
@@ -170,9 +200,13 @@ class LoginViewModel(
         username = ""
         password = ""
         showMfa = false
+        showCaptcha = false
         mfaTicket = null
         fingerprint = null
         cookies = null
+        captchaSiteKey = null
+        captchaRqData = null
+        captchaRqToken = null
 
         accountManager.currentAccountToken = token
         activityManager.startActivity(AppActivity::class)
@@ -190,15 +224,19 @@ class LoginViewModel(
     fun updateUsername(newUsername: String) {
         username = newUsername
         usernameError = false
+        errorMessage = null
         cookies = null
         fingerprint = null
+        captchaRqToken = null
     }
 
     fun updatePassword(newPassword: String) {
         password = newPassword
         passwordError = false
+        errorMessage = null
         cookies = null
         fingerprint = null
+        captchaRqToken = null
     }
 
     fun updateMfaCode(newMFACode: String) {

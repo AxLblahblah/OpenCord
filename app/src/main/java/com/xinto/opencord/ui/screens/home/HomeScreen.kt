@@ -75,6 +75,7 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxHeight()
                             .width(72.dp),
+                        onHomeSelect = channelsViewModel::load,
                         onGuildSelect = channelsViewModel::load,
                         viewModel = guildsViewModel,
                     )
@@ -142,6 +143,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 MembersList(
+                    guildId = channelsViewModel.selectedGuildId,
                     modifier = Modifier
                         .fillMaxSize()
                         .weight(1f),

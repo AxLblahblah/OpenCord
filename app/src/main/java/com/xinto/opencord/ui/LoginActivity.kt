@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
-import com.hcaptcha.sdk.HCaptcha
 import com.xinto.opencord.db.database.AccountDatabase
 import com.xinto.opencord.ui.navigation.LoginDestination
 import com.xinto.opencord.ui.navigation.back
@@ -31,7 +30,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
-import org.koin.core.parameter.parametersOf
 
 class LoginActivity : AppCompatActivity() {
     private val scope = MainScope()
@@ -42,7 +40,6 @@ class LoginActivity : AppCompatActivity() {
 
         scope.launch(Dispatchers.IO) {
             // Preload modules
-            get<HCaptcha> { parametersOf(this@LoginActivity) }
             get<AccountDatabase>()
         }
 

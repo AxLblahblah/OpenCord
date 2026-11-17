@@ -1,5 +1,6 @@
 package com.xinto.opencord.rest.models
 
+import com.xinto.opencord.rest.models.user.ApiUser
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -12,7 +13,10 @@ data class ApiChannel(
     val guildId: ApiSnowflake? = null,
 
     @SerialName("name")
-    val name: String,
+    val name: String? = null,
+
+    @SerialName("recipients")
+    val recipients: List<ApiUser>? = null,
 
     @SerialName("type")
     val type: Int,

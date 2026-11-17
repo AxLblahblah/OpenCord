@@ -7,6 +7,7 @@ import org.koin.androidx.compose.getViewModel
 
 @Composable
 fun GuildsList(
+    onHomeSelect: () -> Unit,
     onGuildSelect: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GuildsViewModel = getViewModel(),
@@ -19,6 +20,11 @@ fun GuildsList(
             GuildsListLoaded(
                 items = viewModel.listItems,
                 modifier = modifier,
+                homeSelected = viewModel.homeSelected,
+                onHomeSelect = {
+                    viewModel.selectHome()
+                    onHomeSelect()
+                },
                 onGuildSelect = {
                     viewModel.selectGuild(it)
                     onGuildSelect()

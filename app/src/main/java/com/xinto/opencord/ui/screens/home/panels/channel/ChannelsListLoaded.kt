@@ -31,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.xinto.opencord.R
+import com.xinto.opencord.domain.channel.DomainDmChannel
 import com.xinto.opencord.domain.channel.DomainTextChannel
 import com.xinto.opencord.domain.channel.DomainVoiceChannel
 import com.xinto.opencord.ui.components.OCImage
@@ -204,6 +205,22 @@ fun ChannelItem(
     onClick: () -> Unit,
 ) {
     when (val channel = itemData.channel) {
+        is DomainDmChannel -> {
+            ChannelListRegularItem(
+                modifier = Modifier.padding(bottom = 2.dp),
+                title = { Text(channel.name) },
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_people),
+                        contentDescription = null,
+                    )
+                },
+                selected = isSelected,
+                showUnread = itemData.isUnread,
+                mentionCount = itemData.mentionCount,
+                onClick = onClick,
+            )
+        }
         is DomainTextChannel -> {
             ChannelListRegularItem(
                 modifier = Modifier.padding(bottom = 2.dp),

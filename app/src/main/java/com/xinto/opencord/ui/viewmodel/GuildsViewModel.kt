@@ -25,14 +25,29 @@ class GuildsViewModel(
     // Dual reference to all Guild items in listItems for performance
     private val guildItemRefs = mutableMapOf<Long, GuildItem.Guild>()
 
+    var homeSelected by mutableStateOf(false)
+        private set
+
     fun selectGuild(guildId: Long) {
         persistentGuildId = guildId
+
+        homeSelected = false
 
         guildItemRefs.values
             .find { it.selected }
             ?.selected = false
 
         guildItemRefs[guildId]?.selected = true
+    }
+
+    fun selectHome() {
+        persistentGuildId = 0L
+
+        homeSelected = true
+
+        guildItemRefs.values
+            .find { it.selected }
+            ?.selected = false
     }
 
     init {
