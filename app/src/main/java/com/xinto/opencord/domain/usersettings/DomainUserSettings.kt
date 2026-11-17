@@ -38,7 +38,7 @@ data class DomainUserSettings(
     val friendDiscoveryFlags: Int, // int??
     val viewNsfwGuilds: Boolean,
     val passwordless: Boolean,
-    val friendSourceFlags: DomainFriendSources,
+    val friendSourceFlags: DomainFriendSources?,
     val guildFolders: List<DomainGuildFolder>,
     val customStatus: DomainCustomStatus?,
 )
@@ -76,7 +76,7 @@ fun ApiUserSettings.toDomain(): DomainUserSettings {
         friendDiscoveryFlags = friendDiscoveryFlags,
         viewNsfwGuilds = viewNsfwGuilds,
         passwordless = passwordless,
-        friendSourceFlags = friendSourceFlags.toDomain(),
+        friendSourceFlags = friendSourceFlags?.toDomain(),
         guildFolders = guildFolders.map { it.toDomain() },
         customStatus = customStatus?.toDomain(),
     )
@@ -110,7 +110,7 @@ fun ApiUserSettingsPartial.toDomain(): DomainUserSettingsPartial {
         friendDiscoveryFlags = friendDiscoveryFlags,
         viewNsfwGuilds = viewNsfwGuilds,
         passwordless = passwordless,
-        friendSourceFlags = friendSourceFlags.map { it.toDomain() },
+        friendSourceFlags = friendSourceFlags.map { it?.toDomain() },
         guildFolders = guildFolders.map { guildFolders ->
             guildFolders.map { it.toDomain() }
         },
