@@ -48,20 +48,20 @@ fun ApiChannel.toDomain(): DomainChannel {
         2 -> DomainVoiceChannel(
             id = id.value,
             guildId = guildId?.value,
-            name = name,
+            name = name ?: "",
             position = position,
             parentId = parentId?.value,
         )
         4 -> DomainCategoryChannel(
             id = id.value,
             guildId = guildId?.value,
-            name = name,
+            name = name ?: "",
             position = position,
         )
         5 -> DomainAnnouncementChannel(
             id = id.value,
             guildId = guildId?.value,
-            name = name,
+            name = name ?: "",
             position = position,
             parentId = parentId?.value,
             nsfw = nsfw,
@@ -69,7 +69,7 @@ fun ApiChannel.toDomain(): DomainChannel {
         else -> DomainTextChannel(
             id = id.value,
             guildId = guildId?.value,
-            name = name,
+            name = name ?: "",
             position = position,
             parentId = parentId?.value,
             nsfw = nsfw,
