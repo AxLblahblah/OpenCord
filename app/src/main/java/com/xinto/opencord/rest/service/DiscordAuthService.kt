@@ -5,6 +5,8 @@ import com.xinto.opencord.rest.body.LoginBody
 import com.xinto.opencord.rest.body.TwoFactorBody
 import com.xinto.opencord.rest.models.ApiExperiments
 import com.xinto.opencord.rest.models.login.ApiLogin
+import com.xinto.opencord.rest.models.login.ApiLoginError
+import com.xinto.opencord.rest.models.login.LoginException
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -62,14 +64,15 @@ class DiscordAuthServiceImpl(
         xCaptchaRqtoken: String?,
     ): ApiLogin {
         return withContext(Dispatchers.IO) {
-            client.post(getLoginUrl()) {
+            val response = client.post(getLoginUrl()) {
                 setBody(body)
                 setCookies(existingCookies)
                 header(HttpHeaders.XFingerprint, xFingerprint)
                 if (xCaptchaRqtoken != null) {
                     header(HttpHeaders.XCaptchaRqtoken, xCaptchaRqtoken)
                 }
-            }.body()
+            }
+            response.bodyOrThrowLoginError()
         }
     }
 
@@ -80,15 +83,21 @@ class DiscordAuthServiceImpl(
         xCaptchaRqtoken: String?,
     ): ApiLogin {
         return withContext(Dispatchers.IO) {
-            client.post(getTwoFactorUrl()) {
+            val response = client.post(getTwoFactorUrl()) {
                 setBody(body)
                 setCookies(existingCookies)
                 header(HttpHeaders.XFingerprint, xFingerprint)
                 if (xCaptchaRqtoken != null) {
                     header(HttpHeaders.XCaptchaRqtoken, xCaptchaRqtoken)
                 }
-            }.body()
+            }
+            response.bodyOrThrowLoginError()
         }
+    }
+
+    private suspend fun HttpResponse.bodyOrThrowLoginError(): ApiLogin {
+        if (status.isSuccess()) return body()
+        throw LoginException(body<ApiLoginError>())
     }
 
     private fun HttpRequestBuilder.setCookies(cookies: List<Cookie>?) {

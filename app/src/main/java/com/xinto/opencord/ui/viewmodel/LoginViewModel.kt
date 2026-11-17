@@ -14,6 +14,7 @@ import com.xinto.opencord.manager.AccountManager
 import com.xinto.opencord.manager.ActivityManager
 import com.xinto.opencord.rest.body.LoginBody
 import com.xinto.opencord.rest.body.TwoFactorBody
+import com.xinto.opencord.rest.models.login.LoginException
 import com.xinto.opencord.rest.service.DiscordAuthService
 import com.xinto.opencord.ui.AppActivity
 import com.xinto.opencord.util.throttle
@@ -62,8 +63,12 @@ class LoginViewModel(
     var mfaError by mutableStateOf(false)
         private set
 
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+
     val login = throttle(1000L, viewModelScope) { captchaToken: String? ->
         showCaptcha = false
+        errorMessage = null
 
         if (username.isEmpty()) {
             usernameError = true
@@ -110,13 +115,21 @@ class LoginViewModel(
                         passwordError = true
                     }
                 }
+            } catch (e: LoginException) {
+                if (e.error.isEmailVerificationRequired) {
+                    errorMessage = "New login location detected. Check your email and click the verification link, then try logging in again."
+                } else {
+                    errorMessage = e.error.message
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
+                errorMessage = e.message
             }
         }
     }
 
     val verify2fa = throttle(1000L, viewModelScope) {
+        errorMessage = null
         if (mfaCode.isEmpty()) {
             mfaError = true
             return@throttle
@@ -159,8 +172,11 @@ class LoginViewModel(
                         mfaError = true
                     }
                 }
+            } catch (e: LoginException) {
+                errorMessage = e.error.message
             } catch (e: Exception) {
                 e.printStackTrace()
+                errorMessage = e.message
             }
         }
     }
@@ -208,6 +224,7 @@ class LoginViewModel(
     fun updateUsername(newUsername: String) {
         username = newUsername
         usernameError = false
+        errorMessage = null
         cookies = null
         fingerprint = null
         captchaRqToken = null
@@ -216,6 +233,7 @@ class LoginViewModel(
     fun updatePassword(newPassword: String) {
         password = newPassword
         passwordError = false
+        errorMessage = null
         cookies = null
         fingerprint = null
         captchaRqToken = null
