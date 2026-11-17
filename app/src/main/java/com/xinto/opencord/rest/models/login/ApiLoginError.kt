@@ -10,7 +10,7 @@ data class ApiLoginError(
     val errors: ApiLoginErrorFields? = null,
 ) {
     val isEmailVerificationRequired: Boolean
-        get() = errors?.login?._errors?.any { it.code == "ACCOUNT_LOGIN_VERIFICATION_EMAIL" } == true
+        get() = errors?.login?.errors?.any { it.code == "ACCOUNT_LOGIN_VERIFICATION_EMAIL" } == true
 }
 
 @Serializable
